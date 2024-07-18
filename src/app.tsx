@@ -1,24 +1,21 @@
-import * as React from 'react';
-// import { appProcess } from '@canva/platform';
-// import { ObjectPanel } from './components/objectPanel';
-// import { SelectedImageOverlay } from './components/selectedImageOverlay';
+import { appProcess } from '@canva/platform';
+import { ObjectPanel } from './components/objectPanel';
+import { Overlay } from './components/overlay';
 
-// export function App() {
-//   const context = appProcess.current.getInfo();
+export type LaunchParams = {
+  brushSize: number;
+};
 
-//   if (context.surface === 'object_panel') {
-//     return <ObjectPanel />;
-//   }
+export const App = () => {
+  const context = appProcess.current.getInfo<LaunchParams>();
 
-//   if (context.surface === 'selected_image_overlay') {
-//     return <SelectedImageOverlay />;
-//   }
+  if (context.surface === 'object_panel') {
+    return <ObjectPanel />;
+  }
 
-//   throw new Error(`Invalid surface: ${context.surface}`);
-// }
+  if (context.surface === 'selected_image_overlay') {
+    return <Overlay context={context} />;
+  }
 
-import { App as FromExample } from '../examples/image_editing_overlay/app';
-
-export function App() {
-  return <FromExample />;
-}
+  throw new Error(`Invalid surface`);
+};
