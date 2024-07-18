@@ -1,10 +1,10 @@
 import { Rows, FormField, Button, Slider } from '@canva/app-ui-kit';
 import { useState } from 'react';
-import styles from 'styles/components.css';
 import { appProcess } from '@canva/platform';
 import { useOverlay } from 'utils/use_overlay_hook';
 import type { LaunchParams } from '../../app';
 import type { CloseOpts } from '../overlay';
+import styles from 'styles/components.css';
 
 type UIState = {
   brushSize: number;
@@ -28,6 +28,11 @@ export const ObjectPanel = () => {
         brushSize: state.brushSize,
       } satisfies LaunchParams,
     });
+  };
+
+  const handleSave = () => {
+    appProcess.broadcastMessage('save');
+    // closeOverlay({ reason: 'completed' });
   };
 
   return (
@@ -63,11 +68,7 @@ export const ObjectPanel = () => {
                 />
               )}
             />
-            <Button
-              variant='primary'
-              onClick={() => closeOverlay({ reason: 'completed' })}
-              stretch
-            >
+            <Button variant='primary' onClick={handleSave} stretch>
               Save Overlay
             </Button>
             <Button

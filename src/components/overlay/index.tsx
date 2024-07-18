@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { LaunchParams } from '../../app';
-import { getTemporaryUrl, upload } from '@canva/asset';
+// import { upload } from '@canva/asset';
 import { useSelection } from 'utils/use_selection_hook';
 import type { AppProcessInfo, CloseParams } from '@canva/platform';
 import { appProcess } from '@canva/platform';
-import type { SelectionEvent } from '@canva/design';
+import { abort, loadOriginalImage } from '../../utils';
+import { usePointDraw } from '../../hooks/drawDrush';
+import styles from './index.css';
+import { useInitMessage } from 'src/hooks/initBroadcast';
 
 // App can extend CloseParams type to send extra data when closing the overlay
 // For example:
@@ -24,10 +27,11 @@ export const Overlay = (props: OverlayProps) => {
   const selection = useSelection('image');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isDraggingRef = useRef<boolean>();
   const uiStateRef = useRef<UIState>({
     brushSize: 7,
   });
+
+  const [cssScale, setCssScale] = useState(1);
 
   useEffect(() => {
     if (!selection || selection.count !== 1) {
@@ -48,10 +52,12 @@ export const Overlay = (props: OverlayProps) => {
     // set up canvas
     const canvas = canvasRef.current;
     if (!canvas) {
+      console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ abort: canvas not exist`);
       return void abort();
     }
     const context = canvas.getContext('2d');
     if (!context) {
+      console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ abort: context not exist`);
       return void abort();
     }
 
@@ -60,22 +66,26 @@ export const Overlay = (props: OverlayProps) => {
 
     // load and draw image to canvas
     const img = new Image();
-    let cssScale = 1;
-    const drawImage = () => {
+    const initCanvasSize = () => {
       // Set the canvas dimensions to match the original image dimensions to maintain image quality,
       // when saving the output image back to the design using canvas.toDataUrl()
-      cssScale = window.innerWidth / img.width;
+      const cssScale = window.innerWidth / img.width;
+      setCssScale(cssScale);
+
       canvas.width = img.width;
       canvas.height = img.height;
       canvas.style.transform = `scale(${cssScale})`;
       canvas.style.transformOrigin = '0 0';
-      context.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // context.drawImage(img, 0, 0, canvas.width, canvas.height);
     };
-    img.onload = drawImage;
+    img.onload = initCanvasSize;
     img.crossOrigin = 'anonymous';
     (async () => {
       const selectedImageUrl = await loadOriginalImage(selection);
       if (!selectedImageUrl) {
+        console.log(
+          `🔨 ~~~~~~~~~~~~~~~~~~~~~~ abort: async fn selectedImageUrl not exist`
+        );
         return void abort();
       }
       img.src = selectedImageUrl;
@@ -85,32 +95,8 @@ export const Overlay = (props: OverlayProps) => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       if (img.complete) {
-        drawImage();
+        initCanvasSize();
       }
-    });
-
-    canvas.addEventListener('pointerdown', e => {
-      isDraggingRef.current = true;
-    });
-
-    canvas.addEventListener('pointermove', e => {
-      if (isDraggingRef.current) {
-        const mousePos = getCanvasMousePosition(canvas, e);
-        context.fillStyle = 'white';
-        context.beginPath();
-        context.arc(
-          mousePos.x,
-          mousePos.y,
-          uiStateRef.current.brushSize * (1 / cssScale),
-          0,
-          Math.PI * 2
-        );
-        context.fill();
-      }
-    });
-
-    canvas.addEventListener('pointerup', () => {
-      isDraggingRef.current = false;
     });
 
     return void appProcess.current.setOnDispose<CloseOpts>(
@@ -120,19 +106,34 @@ export const Overlay = (props: OverlayProps) => {
           return;
         }
         const dataUrl = canvas.toDataURL();
+        console.log(`🚧 || effect unmount dataUrl:`, dataUrl);
+
         const draft = await selection.read();
-        const queueImage = await upload({
-          type: 'IMAGE',
-          mimeType: 'image/png',
-          url: dataUrl,
-          thumbnailUrl: dataUrl,
-          width: canvas.width,
-          height: canvas.height,
-        });
-        draft.contents[0].ref = queueImage.ref;
+        // const queueImage = await upload({
+        //   type: 'IMAGE',
+        //   mimeType: 'image/png',
+        //   url: dataUrl,
+        //   thumbnailUrl: dataUrl,
+        //   width: canvas.width,
+        //   height: canvas.height,
+        // });
+        // draft.contents[0].ref = queueImage.ref;
         await draft.save();
       }
     );
+  }, [selection]);
+
+  usePointDraw(canvasRef.current, uiStateRef.current, cssScale);
+
+  useInitMessage(canvasRef);
+
+  // 初始化设置背景图
+  const [bgImg, setBgImg] = useState('');
+  useEffect(() => {
+    (async () => {
+      const selectedImageUrl = await loadOriginalImage(selection);
+      selectedImageUrl && setBgImg(selectedImageUrl);
+    })();
   }, [selection]);
 
   useEffect(() => {
@@ -149,33 +150,17 @@ export const Overlay = (props: OverlayProps) => {
     });
   }, []);
 
-  return <canvas ref={canvasRef} />;
-};
-
-const abort = () => appProcess.current.requestClose({ reason: 'aborted' });
-
-const loadOriginalImage = async (selection: SelectionEvent<'image'>) => {
-  if (selection.count !== 1) {
-    return;
-  }
-  const draft = await selection.read();
-  const { url } = await getTemporaryUrl({
-    type: 'IMAGE',
-    ref: draft.contents[0].ref,
-  });
-  return url;
-};
-
-// get the mouse position relative to the canvas
-const getCanvasMousePosition = (
-  canvas: HTMLCanvasElement,
-  event: PointerEvent
-) => {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return {
-    x: (event.clientX - rect.left) * scaleX,
-    y: (event.clientY - rect.top) * scaleY,
-  };
+  return (
+    <>
+      <img
+        className={styles.bgImage}
+        src={bgImg}
+        style={{
+          width: canvasRef.current?.width,
+          height: canvasRef.current?.height,
+        }}
+      />
+      <canvas ref={canvasRef} />
+    </>
+  );
 };
