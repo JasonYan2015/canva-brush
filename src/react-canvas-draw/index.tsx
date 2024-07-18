@@ -684,9 +684,11 @@ export default class CanvasDraw extends PureComponent {
 
     // Draw the image once loaded
     this.image.onload = this.redrawImage;
-    this.image.width = this.props.canvasWidth;
-    this.image.height = this.props.canvasHeight;
+    // this.image.width = this.props.canvasWidth;
+    // this.image.height = this.props.canvasHeight;
     this.image.src = this.props.imgSrc;
+
+    console.log(`🚧 || this.props.canvasWidth`, this.image);
   };
 
   drawGrid = ctx => {

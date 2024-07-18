@@ -41,15 +41,17 @@ export function SelectedImageOverlay() {
     initializeCanvas();
   }, [selection]);
 
+  // 注册事件
   React.useEffect(() => {
     appProcess.registerOnMessage((sender, message) => {
       // Invert the colors of the image
-      if (message === 'invert') {
+      if (message === 'console') {
         // const { canvas, context } = getCanvas(canvasRef.current);
         // const { width, height } = canvas;
         // context.filter = 'invert(100%)';
         // context.drawImage(canvas, 0, 0, width, height);
         console.log(`🚧 || registerOnMessage invert`, message);
+        console.log(`🚧 || `);
       }
     });
   }, []);
@@ -89,15 +91,18 @@ export function SelectedImageOverlay() {
   };
 
   return (
-    <CanvasDraw
-      onChange={handleChange}
-      immediateLoading={!bgImage}
-      ref={canvasDraw => {
-        canvasRef.current = canvasDraw;
-      }}
-      hideGrid
-      imgSrc={bgImage}
-      backgroundColor='rgba(255,255,255,0.5)'
-    />
+    <>
+      <CanvasDraw
+        onChange={handleChange}
+        immediateLoading={!bgImage}
+        ref={canvasDraw => {
+          canvasRef.current = canvasDraw;
+        }}
+        hideGrid
+        // imgSrc={bgImage}
+        brushColor='rgba(0,0,0,0.5)'
+      />
+      <img className='origin-image' src={bgImage} alt='' />
+    </>
   );
 }

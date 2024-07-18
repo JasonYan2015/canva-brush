@@ -21,7 +21,7 @@ export function ObjectPanel() {
   }
 
   function handleInvert() {
-    appProcess.broadcastMessage('invert');
+    appProcess.broadcastMessage('console');
   }
 
   function handleSave() {
@@ -42,7 +42,7 @@ export function ObjectPanel() {
               disabled={!isImageReady}
               onClick={handleInvert}
             >
-              Invert
+              console
             </Button>
           </Rows>
           <Rows spacing='1u'>
