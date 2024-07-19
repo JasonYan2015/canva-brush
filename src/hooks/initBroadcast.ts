@@ -36,20 +36,19 @@ export function useInitMessage(canvasRef) {
           width: canvas.width,
           height: canvas.height,
         });
-        try {
-          const { url, ref, type } = await getTemporaryUrl({
-            type: 'IMAGE',
-            ref: queueImage.ref,
-          });
-          console.log(`🚧 || url, ref, type`, url, ref, type);
+        // 等 canva 后台上传完成，后面才能消费
+        await queueImage.whenUploaded();
 
-          const draft = await selection.read();
-          // draft.contents[0].ref = queueImage.ref;
-          // await draft.save();
-          console.log(`🚧 || draft`, draft);
-        } catch (error) {
-          console.error(`❌ || getTemporaryUrl error`, error);
-        }
+        const { url, ref, type } = await getTemporaryUrl({
+          type: 'IMAGE',
+          ref: queueImage.ref,
+        });
+        console.log(`🚧 || url, ref, type`, url, ref, type);
+
+        const draft = await selection.read();
+        // draft.contents[0].ref = queueImage.ref;
+        // await draft.save();
+        console.log(`🚧 || draft`, draft);
 
         // closeOverlay({ reason: 'completed' });
       }
