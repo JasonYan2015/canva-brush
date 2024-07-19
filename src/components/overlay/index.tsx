@@ -8,6 +8,7 @@ import { abort, loadOriginalImage } from '../../utils';
 import { usePointDraw } from '../../hooks/drawDrush';
 import styles from './index.css';
 import { useInitMessage } from 'src/hooks/initBroadcast';
+import { upload } from '@canva/asset';
 
 // App can extend CloseParams type to send extra data when closing the overlay
 // For example:
@@ -18,7 +19,7 @@ type OverlayProps = {
   context: AppProcessInfo<LaunchParams>;
 };
 
-type UIState = {
+export type UIState = {
   brushSize: number;
 };
 
@@ -67,8 +68,6 @@ export const Overlay = (props: OverlayProps) => {
     // load and draw image to canvas
     const img = new Image();
     const initCanvasSize = () => {
-      // Set the canvas dimensions to match the original image dimensions to maintain image quality,
-      // when saving the output image back to the design using canvas.toDataUrl()
       const cssScale = window.innerWidth / img.width;
       setCssScale(cssScale);
 
@@ -76,7 +75,6 @@ export const Overlay = (props: OverlayProps) => {
       canvas.height = img.height;
       canvas.style.transform = `scale(${cssScale})`;
       canvas.style.transformOrigin = '0 0';
-      // context.drawImage(img, 0, 0, canvas.width, canvas.height);
     };
     img.onload = initCanvasSize;
     img.crossOrigin = 'anonymous';
@@ -109,23 +107,22 @@ export const Overlay = (props: OverlayProps) => {
         console.log(`🚧 || effect unmount dataUrl:`, dataUrl);
 
         const draft = await selection.read();
-        // const queueImage = await upload({
-        //   type: 'IMAGE',
-        //   mimeType: 'image/png',
-        //   url: dataUrl,
-        //   thumbnailUrl: dataUrl,
-        //   width: canvas.width,
-        //   height: canvas.height,
-        // });
-        // draft.contents[0].ref = queueImage.ref;
         await draft.save();
+        await upload({
+          type: 'IMAGE',
+          mimeType: 'image/png',
+          url: dataUrl,
+          thumbnailUrl: dataUrl,
+          width: canvas.width,
+          height: canvas.height,
+        });
       }
     );
   }, [selection]);
 
   usePointDraw(canvasRef.current, uiStateRef.current, cssScale);
 
-  useInitMessage(canvasRef);
+  useInitMessage(canvasRef, uiStateRef);
 
   // 初始化设置背景图
   const [bgImg, setBgImg] = useState('');
@@ -136,28 +133,14 @@ export const Overlay = (props: OverlayProps) => {
     })();
   }, [selection]);
 
-  useEffect(() => {
-    // set up message handler
-    return void appProcess.registerOnMessage((_, message) => {
-      if (!message) {
-        return;
-      }
-      const { brushSize } = message as UIState;
-      uiStateRef.current = {
-        ...uiStateRef.current,
-        brushSize,
-      };
-    });
-  }, []);
-
   return (
     <>
       <img
         className={styles.bgImage}
         src={bgImg}
         style={{
-          width: canvasRef.current?.width,
-          height: canvasRef.current?.height,
+          width: (canvasRef.current?.width || 1) * cssScale,
+          height: (canvasRef.current?.height || 1) * cssScale,
         }}
       />
       <canvas ref={canvasRef} />
