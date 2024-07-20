@@ -5,7 +5,7 @@ import { useSelection } from 'utils/use_selection_hook';
 import type { AppProcessInfo, CloseParams } from '@canva/platform';
 import { appProcess } from '@canva/platform';
 import { abort, loadOriginalImage } from '../../utils';
-import { usePointDraw } from '../../hooks/drawDrush';
+import { usePointDraw } from '../../hooks/drawBrush';
 import styles from './index.css';
 import { useInitMessage } from 'src/hooks/initBroadcast';
 import { upload } from '@canva/asset';
@@ -34,6 +34,8 @@ export const Overlay = (props: OverlayProps) => {
 
   const [cssScale, setCssScale] = useState(1);
 
+  const [bgImg, setBgImg] = useState('');
+
   useEffect(() => {
     if (!selection || selection.count !== 1) {
       return;
@@ -53,12 +55,10 @@ export const Overlay = (props: OverlayProps) => {
     // set up canvas
     const canvas = canvasRef.current;
     if (!canvas) {
-      console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ abort: canvas not exist`);
       return void abort();
     }
     const context = canvas.getContext('2d');
     if (!context) {
-      console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ abort: context not exist`);
       return void abort();
     }
 
@@ -81,12 +81,13 @@ export const Overlay = (props: OverlayProps) => {
     (async () => {
       const selectedImageUrl = await loadOriginalImage(selection);
       if (!selectedImageUrl) {
-        console.log(
-          `🔨 ~~~~~~~~~~~~~~~~~~~~~~ abort: async fn selectedImageUrl not exist`
-        );
         return void abort();
       }
       img.src = selectedImageUrl;
+
+      // TODO: 比较慢，尤其图大的时候，搞个 loading
+      // 初始化设置背景图
+      setBgImg(selectedImageUrl);
     })();
 
     window.addEventListener('resize', () => {
@@ -121,16 +122,6 @@ export const Overlay = (props: OverlayProps) => {
   }, [selection]);
 
   usePointDraw(canvasRef.current, uiStateRef.current, cssScale);
-
-  // TODO: 比较慢，尤其图大的时候，搞个 loading
-  // 初始化设置背景图
-  const [bgImg, setBgImg] = useState('');
-  useEffect(() => {
-    (async () => {
-      const selectedImageUrl = await loadOriginalImage(selection);
-      selectedImageUrl && setBgImg(selectedImageUrl);
-    })();
-  }, [selection]);
 
   useInitMessage(canvasRef, uiStateRef, bgImg);
 

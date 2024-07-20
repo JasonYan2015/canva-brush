@@ -6,6 +6,7 @@ import type { LaunchParams } from '../../app';
 import type { CloseOpts } from '../overlay';
 import styles from './index.css';
 import { UploadLocalImage } from './uploadImage';
+import { getTemporaryUrl, upload } from '@canva/asset';
 
 type UIState = {
   brushSize: number;
@@ -63,7 +64,26 @@ export const ObjectPanel = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const handleSubmit = async () => {
     setSubmitLoading(true);
-    const result = await (
+
+    const targetImage = await upload({
+      type: 'IMAGE',
+      mimeType: 'image/png',
+      url: targetMesh,
+      thumbnailUrl: targetMesh,
+      // width: canvas.width,
+      // height: canvas.height,
+    });
+    // 等 canva 后台上传完成，后面才能消费
+    await targetImage.whenUploaded();
+
+    const { url: targetImageUrl } = await getTemporaryUrl({
+      type: 'IMAGE',
+      ref: targetImage.ref,
+    });
+
+    console.log(`🚧 || handleSubmit targetImageUrl`, targetImageUrl);
+
+    const result = await(
       await fetch('https://fusion-brush-cf.xiongty.workers.dev/api/task', {
         method: 'POST', // 指定请求方法为 POST
         headers: {
@@ -73,8 +93,7 @@ export const ObjectPanel = () => {
         body: JSON.stringify({
           background: overlayImages?.originImage,
           layers: [overlayImages?.maskImage],
-          composite:
-            'https://lpdoctor-fusion-brush.hf.space/file=/tmp/gradio/5e38b94829e8fe51e9b3a492ed753f31d2a01198/composite.png',
+          composite: targetImageUrl,
           ref: 'https://lpdoctor-fusion-brush.hf.space/file=/tmp/gradio/81d8c81a9f59895c7300f24657fa3541ae2d3267/001_reference.png',
           step: 50,
           scale: 5,
@@ -150,17 +169,19 @@ export const ObjectPanel = () => {
         </>
       )}
 
-      <Box paddingTop='4u'>
-        <Button
-          variant='primary'
-          onClick={handleSubmit}
-          disabled={!targetMesh}
-          stretch
-          loading={submitLoading}
-        >
-          Submit to generate
-        </Button>
-      </Box>
+      {!isOpen && (
+        <Box paddingTop='4u'>
+          <Button
+            variant='primary'
+            onClick={handleSubmit}
+            disabled={!targetMesh}
+            stretch
+            loading={submitLoading}
+          >
+            Submit to generate
+          </Button>
+        </Box>
+      )}
     </div>
   );
 };
