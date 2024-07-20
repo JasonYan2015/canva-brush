@@ -4,12 +4,47 @@ import { useEffect } from 'react';
 import { UIState } from 'src/components/overlay';
 
 // 注册事件
-export function useInitMessage(canvasRef, uiStateRef) {
+export function useInitMessage(canvasRef, uiStateRef, originImage) {
+  const handleSave = async canvas => {
+    /**
+     * 1. 蒙层的图
+     */
+    const dataUrl = canvas.toDataURL();
+    const maskImage = await upload({
+      type: 'IMAGE',
+      mimeType: 'image/png',
+      url: dataUrl,
+      thumbnailUrl: dataUrl,
+      width: canvas.width,
+      height: canvas.height,
+    });
+    // 等 canva 后台上传完成，后面才能消费
+    await maskImage.whenUploaded();
+
+    const { url: maskImageUrl } = await getTemporaryUrl({
+      type: 'IMAGE',
+      ref: maskImage.ref,
+    });
+    console.log(`🚧 || 蒙层 url`, maskImageUrl);
+
+    appProcess.broadcastMessage({
+      type: 'meshReady',
+      originImage,
+      maskImage: maskImageUrl,
+    });
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
 
     appProcess.registerOnMessage(async (sender, message) => {
       if (!message) {
+        return;
+      }
+
+      // TODO: 时间比较久，搞一个 全局 loading
+      if (message.type === 'save' && canvas) {
+        await handleSave(canvas);
         return;
       }
 
@@ -19,28 +54,6 @@ export function useInitMessage(canvasRef, uiStateRef) {
         ...uiStateRef.current,
         brushSize,
       };
-
-      // TODO: 时间比较久，搞一个 全局 loading
-      if (message === 'save' && canvas) {
-        const dataUrl = canvas.toDataURL();
-
-        const queueImage = await upload({
-          type: 'IMAGE',
-          mimeType: 'image/png',
-          url: dataUrl,
-          thumbnailUrl: dataUrl,
-          width: canvas.width,
-          height: canvas.height,
-        });
-        // 等 canva 后台上传完成，后面才能消费
-        await queueImage.whenUploaded();
-
-        const { url } = await getTemporaryUrl({
-          type: 'IMAGE',
-          ref: queueImage.ref,
-        });
-        console.log(`🚧 || 蒙层 url`, url);
-      }
     });
   }, []);
 }

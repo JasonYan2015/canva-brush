@@ -122,8 +122,7 @@ export const Overlay = (props: OverlayProps) => {
 
   usePointDraw(canvasRef.current, uiStateRef.current, cssScale);
 
-  useInitMessage(canvasRef, uiStateRef);
-
+  // TODO: 比较慢，尤其图大的时候，搞个 loading
   // 初始化设置背景图
   const [bgImg, setBgImg] = useState('');
   useEffect(() => {
@@ -132,6 +131,8 @@ export const Overlay = (props: OverlayProps) => {
       selectedImageUrl && setBgImg(selectedImageUrl);
     })();
   }, [selection]);
+
+  useInitMessage(canvasRef, uiStateRef, bgImg);
 
   return (
     <>

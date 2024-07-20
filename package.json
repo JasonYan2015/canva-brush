@@ -37,6 +37,7 @@
     "catenary-curve": "^1.0.1",
     "lazy-brush": "^1.0.1",
     "prop-types": "^15.6.2",
+    "antd": "^5.18.0",
     "resize-observer-polyfill": "^1.5.0"
   },
   "devDependencies": {

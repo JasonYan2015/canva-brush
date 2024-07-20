@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { FileInput, ImageCard, Text, Title } from '@canva/app-ui-kit';
-import { upload } from '@canva/asset';
-import { ui } from '@canva/design';
 
-export const UploadLocalImage = () => {
+interface IUploadLocalImage {
+  onUpload: (p: { file: string }) => void;
+}
+export const UploadLocalImage: React.FC<IUploadLocalImage> = ({ onUpload }) => {
   const [fileBase64, setFileBase64] = useState('');
 
   const handleUploadFile = async (files: File[]) => {
@@ -20,21 +21,27 @@ export const UploadLocalImage = () => {
         const binaryString = String.fromCharCode(...uint8Array);
         // 将二进制字符串转换为 base64 编码
         const base64String = btoa(binaryString);
-        setFileBase64(`data:${file.type};base64,` + base64String);
+
+        const newFileBase64 = `data:${file.type};base64,` + base64String;
+        setFileBase64(newFileBase64);
+        onUpload({ file: newFileBase64 });
       };
       reader.readAsArrayBuffer(file);
+    } else {
+      onUpload({ file: '' });
     }
   };
 
   const removeImage = () => {
     setFileBase64('');
+    onUpload({ file: '' });
   };
 
   return (
     <>
       {!fileBase64 ? (
         <>
-          <Title size='small'>Select Target Image</Title>
+          <Title size='small'>Upload A Target Image</Title>
           <FileInput
             stretchButton
             accept={['image/*']}

@@ -2,10 +2,12 @@
 .scrollContainer {
   box-sizing: border-box;
   overflow-y: scroll;
+  min-height: 100vh;
   height: 100%;
   padding-top: var(--ui-kit-space-2);
   padding-right: var(--ui-kit-space-2);
   padding-bottom: var(--ui-kit-space-2);
+  position: relative;
 
   /* for firefox */
   scrollbar-width: thin;
@@ -35,4 +37,9 @@
 .scrollContainer:focus::-webkit-scrollbar-thumb,
 .scrollContainer:focus-within::-webkit-scrollbar-thumb {
   visibility: visible;
+}
+
+.bottom {
+  position: absolute;
+  bottom: 10px;
 }

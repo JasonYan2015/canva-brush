@@ -1,10 +1,10 @@
-import { Rows, FormField, Button, Slider, Title } from '@canva/app-ui-kit';
-import { useState } from 'react';
+import { Rows, FormField, Button, Slider, Title, Box } from '@canva/app-ui-kit';
+import { useEffect, useState } from 'react';
 import { appProcess } from '@canva/platform';
 import { useOverlay } from 'utils/use_overlay_hook';
 import type { LaunchParams } from '../../app';
 import type { CloseOpts } from '../overlay';
-import styles from 'styles/components.css';
+import styles from './index.css';
 import { UploadLocalImage } from './uploadImage';
 
 type UIState = {
@@ -32,8 +32,61 @@ export const ObjectPanel = () => {
   };
 
   const handleSave = () => {
-    appProcess.broadcastMessage('save');
-    // closeOverlay({ reason: 'completed' });
+    // 触发面板图的保存
+    appProcess.broadcastMessage({ type: 'save' });
+  };
+
+  const [targetMesh, setTargetMesh] = useState('');
+  const onTargetUpload = params => {
+    const { file } = params;
+    setTargetMesh(file);
+  };
+
+  const [overlayImages, setOverlayImages] = useState<{
+    originImage: string;
+    maskImage: string;
+  }>();
+  useEffect(() => {
+    appProcess.registerOnMessage((_, message) => {
+      console.log(`🚧 || overlay listen`, message);
+      if (message && message.type === 'meshReady') {
+        const { type, ...images } = message;
+        setOverlayImages(images);
+
+        console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ closeOverlay`);
+        closeOverlay({ reason: 'aborted' });
+        // appProcess.current.requestClose({ reason: 'completed' });
+      }
+    });
+  }, []);
+
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const handleSubmit = async () => {
+    setSubmitLoading(true);
+    const result = await (
+      await fetch('https://fusion-brush-cf.xiongty.workers.dev/api/task', {
+        method: 'POST', // 指定请求方法为 POST
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          background: overlayImages?.originImage,
+          layers: [overlayImages?.maskImage],
+          composite:
+            'https://lpdoctor-fusion-brush.hf.space/file=/tmp/gradio/5e38b94829e8fe51e9b3a492ed753f31d2a01198/composite.png',
+          ref: 'https://lpdoctor-fusion-brush.hf.space/file=/tmp/gradio/81d8c81a9f59895c7300f24657fa3541ae2d3267/001_reference.png',
+          step: 50,
+          scale: 5,
+          seed: -1,
+          keep: true,
+        }),
+      })
+    ).json();
+
+    console.log(`🚧 || handleSubmit result`, result);
+
+    setSubmitLoading(false);
   };
 
   return (
@@ -82,20 +135,32 @@ export const ObjectPanel = () => {
       ) : (
         <>
           <Rows spacing='2u'>
+            <UploadLocalImage onUpload={onTargetUpload} />
+
             <Title size='small'>Open Overlay</Title>
             <Button
-              variant='primary'
+              variant='secondary'
               onClick={openOverlay}
               disabled={!canOpen}
               stretch
             >
               {canOpen ? 'Open Overlay' : 'Focus on a image to start'}
             </Button>
-
-            <UploadLocalImage />
           </Rows>
         </>
       )}
+
+      <Box paddingTop='4u'>
+        <Button
+          variant='primary'
+          onClick={handleSubmit}
+          disabled={!targetMesh}
+          stretch
+          loading={submitLoading}
+        >
+          Submit to generate
+        </Button>
+      </Box>
     </div>
   );
 };
