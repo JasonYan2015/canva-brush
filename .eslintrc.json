@@ -110,7 +110,6 @@
       }
     ],
     "no-caller": "error",
-    "no-console": "error",
     "no-eval": "error",
     "no-inner-declarations": "error",
     "no-new-wrappers": "error",

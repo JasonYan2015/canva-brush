@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LaunchParams } from '../../app';
-// import { upload } from '@canva/asset';
 import { useSelection } from 'utils/use_selection_hook';
 import type { AppProcessInfo, CloseParams } from '@canva/platform';
 import { appProcess } from '@canva/platform';
@@ -10,9 +9,6 @@ import styles from './index.css';
 import { useInitMessage } from 'src/hooks/initBroadcast';
 import { upload } from '@canva/asset';
 
-// App can extend CloseParams type to send extra data when closing the overlay
-// For example:
-// type CloseOpts = CloseParams & { message: string }
 export type CloseOpts = CloseParams;
 
 type OverlayProps = {
@@ -105,7 +101,6 @@ export const Overlay = (props: OverlayProps) => {
           return;
         }
         const dataUrl = canvas.toDataURL();
-        console.log(`🚧 || effect unmount dataUrl:`, dataUrl);
 
         const draft = await selection.read();
         await draft.save();
@@ -127,6 +122,7 @@ export const Overlay = (props: OverlayProps) => {
 
   return (
     <>
+      {/* eslint-disable-next-line react/forbid-elements */}
       <img
         className={styles.bgImage}
         src={bgImg}

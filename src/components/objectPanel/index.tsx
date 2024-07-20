@@ -7,6 +7,7 @@ import type { CloseOpts } from '../overlay';
 import styles from './index.css';
 import { UploadLocalImage } from './uploadImage';
 import { getTemporaryUrl, upload } from '@canva/asset';
+import { OpenOverlay } from './openOverlay';
 
 type UIState = {
   brushSize: number;
@@ -49,17 +50,14 @@ export const ObjectPanel = () => {
   }>();
   useEffect(() => {
     appProcess.registerOnMessage((_, message) => {
-      console.log(`🚧 || overlay listen`, message);
       if (message && message.type === 'meshReady') {
         const { type, ...images } = message;
         setOverlayImages(images);
 
-        console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ closeOverlay`);
         closeOverlay({ reason: 'aborted' });
-        // appProcess.current.requestClose({ reason: 'completed' });
       }
     });
-  }, []);
+  }, [closeOverlay]);
 
   const [submitLoading, setSubmitLoading] = useState(false);
   const handleSubmit = async () => {
@@ -81,7 +79,11 @@ export const ObjectPanel = () => {
       ref: targetImage.ref,
     });
 
-    console.log(`🚧 || handleSubmit targetImageUrl`, targetImageUrl);
+    console.log(`🚧 || submit`, {
+      background: overlayImages?.originImage,
+      layers: [overlayImages?.maskImage],
+      composite: targetImageUrl,
+    });
 
     const result = await(
       await fetch('https://fusion-brush-cf.xiongty.workers.dev/api/task', {
@@ -106,6 +108,10 @@ export const ObjectPanel = () => {
     console.log(`🚧 || handleSubmit result`, result);
 
     setSubmitLoading(false);
+  };
+
+  const resetOverlayImage = () => {
+    setOverlayImages(undefined);
   };
 
   return (
@@ -156,15 +162,12 @@ export const ObjectPanel = () => {
           <Rows spacing='2u'>
             <UploadLocalImage onUpload={onTargetUpload} />
 
-            <Title size='small'>Open Overlay</Title>
-            <Button
-              variant='secondary'
-              onClick={openOverlay}
-              disabled={!canOpen}
-              stretch
-            >
-              {canOpen ? 'Open Overlay' : 'Focus on a image to start'}
-            </Button>
+            <OpenOverlay
+              canOpen={canOpen}
+              openOverlay={openOverlay}
+              overlayImage={overlayImages?.originImage}
+              removeOverlayImage={resetOverlayImage}
+            />
           </Rows>
         </>
       )}
