@@ -9,41 +9,21 @@ export const UploadLocalImage: React.FC<IUploadLocalImage> = ({ onUpload }) => {
 
   const handleUploadFile = async (files: File[]) => {
     const file = files[0];
-    const chunkSize = 1024 * 1024; // 1MB chunk size
-    let fileIndex = 0;
 
     if (file) {
       const reader = new FileReader();
       // 开始读取文件的第一个 chunk
       // 在 onload 里会递归地读后续部分
-      reader.readAsArrayBuffer(file.slice(0, chunkSize));
+      reader.readAsArrayBuffer(file);
 
-      let fileBase64 = `data:${file.type};base64,`;
       reader.onload = async event => {
         if (!event.target) return;
 
         const arrayBuffer = event.target.result as ArrayBuffer;
-        // 处理 ArrayBuffer，例如发送到服务器或转换为 base64
-        // 这里仅演示将 ArrayBuffer 转换为 base64 编码
-        const base64String = arrayBufferToBase64(arrayBuffer);
-
-        // 累加 base64 编码的片段
-        fileBase64 += base64String;
-
-        // 检查是否还有更多的文件需要读取
-        fileIndex += chunkSize;
-        if (fileIndex < file.size) {
-          setTimeout(() => {
-            reader.readAsArrayBuffer(
-              file.slice(fileIndex, fileIndex + chunkSize)
-            );
-          }, 100);
-        } else {
-          fileBase64 += base64String;
-          console.log(`🚧 || fileBase64`, fileBase64);
-          setFileBase64(fileBase64);
-          onUpload({ file: fileBase64 });
-        }
+        const blob = new Blob([arrayBuffer], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        setFileBase64(url);
+        onUpload({ file: url });
       };
 
       reader.onerror = error => {
@@ -86,10 +66,3 @@ export const UploadLocalImage: React.FC<IUploadLocalImage> = ({ onUpload }) => {
     </>
   );
 };
-
-// ArrayBuffer 转换为 base64 编码的辅助函数
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  const uint8Array = new Uint8Array(buffer);
-  const binaryString = String.fromCharCode(...uint8Array);
-  return btoa(binaryString);
-}
