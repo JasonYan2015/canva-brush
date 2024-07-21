@@ -1,4 +1,4 @@
-import { Rows, FormField, Button, Slider, Title, Box } from '@canva/app-ui-kit';
+import { Rows, FormField, Button, Slider, Box, Title } from '@canva/app-ui-kit';
 import { useEffect, useState } from 'react';
 import { appProcess } from '@canva/platform';
 import { useOverlay } from 'utils/use_overlay_hook';
@@ -8,6 +8,7 @@ import styles from './index.css';
 import { UploadLocalImage } from './uploadImage';
 import { getTemporaryUrl, upload } from '@canva/asset';
 import { OpenOverlay } from './openOverlay';
+import { getAuthToken } from 'src/utils/auth';
 
 type UIState = {
   brushSize: number;
@@ -85,18 +86,19 @@ export const ObjectPanel = () => {
       composite: targetImageUrl,
     });
 
-    const result = await(
+    const result = await (
       await fetch('https://fusion-brush-cf.xiongty.workers.dev/api/task', {
-        method: 'POST', // 指定请求方法为 POST
+        method: 'POST',
         headers: {
           accept: 'application/json',
           'Content-Type': 'application/json',
+          Authorization: await getAuthToken(),
         },
         body: JSON.stringify({
           background: overlayImages?.originImage,
           layers: [overlayImages?.maskImage],
           composite: targetImageUrl,
-          ref: 'https://lpdoctor-fusion-brush.hf.space/file=/tmp/gradio/81d8c81a9f59895c7300f24657fa3541ae2d3267/001_reference.png',
+          ref: targetImageUrl,
           step: 50,
           scale: 5,
           seed: -1,
@@ -111,6 +113,7 @@ export const ObjectPanel = () => {
   };
 
   const resetOverlayImage = () => {
+    console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ reset overlay image`);
     setOverlayImages(undefined);
   };
 
@@ -166,6 +169,7 @@ export const ObjectPanel = () => {
               canOpen={canOpen}
               openOverlay={openOverlay}
               overlayImage={overlayImages?.originImage}
+              overlayMaskImage={overlayImages?.maskImage}
               removeOverlayImage={resetOverlayImage}
             />
           </Rows>
@@ -174,6 +178,9 @@ export const ObjectPanel = () => {
 
       {!isOpen && (
         <Box paddingTop='4u'>
+          <Title size='small' alignment='center'>
+            👇 Submit to Generate 👇
+          </Title>
           <Button
             variant='primary'
             onClick={handleSubmit}
@@ -181,7 +188,7 @@ export const ObjectPanel = () => {
             stretch
             loading={submitLoading}
           >
-            Submit to generate
+            use Fusion Brush!
           </Button>
         </Box>
       )}

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { FileInput, ImageCard, Text, Title } from '@canva/app-ui-kit';
-import { upload } from '@canva/asset';
-import { ui } from '@canva/design';
+import { getAuthToken } from 'src/utils/auth';
 
 export const UploadLocalImage = () => {
   const [fileUrl, setFileUrl] = useState('');
@@ -14,11 +13,14 @@ export const UploadLocalImage = () => {
       formData.append('file', file);
 
       const fileName = `tempImage_${Date.now()}.${file.type.split('/')[1]}`;
-      const result: { url: string } = await (
+      const result: { url: string } = await(
         await fetch(
           `https://fusion-brush-cf.xiongty.workers.dev/api/uploads/${fileName}`,
           {
             method: 'POST',
+            headers: {
+              Authorization: await getAuthToken(),
+            },
             body: formData,
           }
         )
@@ -52,7 +54,6 @@ export const UploadLocalImage = () => {
             ariaLabel='Add image to design'
             alt='dog image'
             thumbnailUrl={fileUrl}
-            // onDragStart={onDragStartForLocalImage}
             onClick={removeImage}
           />
         </>
@@ -61,13 +62,3 @@ export const UploadLocalImage = () => {
   );
 };
 
-// export const uploadLocalImage = (fileOrUrl) => {
-//   return upload({
-//     mimeType: 'image/jpeg',
-//     thumbnailUrl: dog,
-//     type: 'IMAGE',
-//     url: dog,
-//     width: 100,
-//     height: 100,
-//   });
-// };

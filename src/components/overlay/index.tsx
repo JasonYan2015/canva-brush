@@ -3,10 +3,10 @@ import type { LaunchParams } from '../../app';
 import { useSelection } from 'utils/use_selection_hook';
 import type { AppProcessInfo, CloseParams } from '@canva/platform';
 import { appProcess } from '@canva/platform';
-import { abort, loadOriginalImage } from '../../utils';
-import { usePointDraw } from '../../hooks/drawBrush';
+import { abort, loadOriginalImage } from '../../utils/utils';
+import { usePointDraw } from './hooks/drawBrush';
 import styles from './index.css';
-import { useInitMessage } from 'src/hooks/initBroadcast';
+import { useInitMessage } from './hooks/initBroadcast';
 import { upload } from '@canva/asset';
 
 export type CloseOpts = CloseParams;

@@ -1,5 +1,5 @@
 import { getTemporaryUrl } from '@canva/asset';
-import { SelectionEvent } from '@canva/design';
+import type { SelectionEvent } from '@canva/design';
 import { appProcess } from '@canva/platform';
 
 export const abort = () =>

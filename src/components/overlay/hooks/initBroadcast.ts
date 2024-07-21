@@ -1,42 +1,42 @@
 import { getTemporaryUrl, upload } from '@canva/asset';
 import { appProcess } from '@canva/platform';
-import { useCallback, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { UIState } from 'src/components/overlay';
 
 // 注册事件
 export function useInitMessage(canvasRef, uiStateRef, originImage) {
-  const handleSave = useCallback(
-    async canvas => {
-      if (!canvas) return;
+  const originImageRef = useRef(originImage);
 
-      const dataUrl = canvas.toDataURL();
-      const maskImage = await upload({
-        type: 'IMAGE',
-        mimeType: 'image/png',
-        url: dataUrl,
-        thumbnailUrl: dataUrl,
-        width: canvas.width,
-        height: canvas.height,
-      });
-      // 等 canva 后台上传完成，才能 getTemporaryUrl
-      await maskImage.whenUploaded();
-      const { url: maskImageUrl } = await getTemporaryUrl({
-        type: 'IMAGE',
-        ref: maskImage.ref,
-      });
+  const handleSave = async canvas => {
+    if (!canvas) return;
 
-      console.log(`🚧 || originImage`, originImage);
-      appProcess.broadcastMessage({
-        type: 'meshReady',
-        originImage,
-        maskImage: maskImageUrl,
-      });
-    },
-    [originImage]
-  );
+    const dataUrl = canvas.toDataURL();
+    const maskImage = await upload({
+      type: 'IMAGE',
+      mimeType: 'image/png',
+      url: dataUrl,
+      thumbnailUrl: dataUrl,
+      width: canvas.width,
+      height: canvas.height,
+    });
+    // 等 canva 后台上传完成，才能 getTemporaryUrl
+    await maskImage.whenUploaded();
+    const { url: maskImageUrl } = await getTemporaryUrl({
+      type: 'IMAGE',
+      ref: maskImage.ref,
+    });
+
+    appProcess.broadcastMessage({
+      type: 'meshReady',
+      originImage: originImageRef.current,
+      maskImage: maskImageUrl,
+    });
+  };
 
   useEffect(
     () => {
+      originImageRef.current = originImage;
+
       appProcess.registerOnMessage(async (sender, message) => {
         if (!message) {
           return;

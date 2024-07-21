@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileInput, ImageCard, Text, Title } from '@canva/app-ui-kit';
+import { FileInput, ImageCard, Text } from '@canva/app-ui-kit';
 
 interface IUploadLocalImage {
   onUpload: (p: { file: string }) => void;
@@ -41,7 +41,7 @@ export const UploadLocalImage: React.FC<IUploadLocalImage> = ({ onUpload }) => {
     <>
       {!fileBase64 ? (
         <>
-          <Title size='small'>Upload A Target Image</Title>
+          <Text size='small'>1. Upload A Target Image</Text>
           <FileInput
             stretchButton
             accept={['image/*']}
@@ -50,7 +50,6 @@ export const UploadLocalImage: React.FC<IUploadLocalImage> = ({ onUpload }) => {
         </>
       ) : (
         <>
-          <Title size='small'>Target Image</Title>
           <Text size='small' tone='tertiary'>
             This image is the Target Mesh.And you can click this image to delete
             it.

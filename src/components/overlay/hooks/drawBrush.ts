@@ -1,5 +1,6 @@
-import { MutableRefObject, useEffect, useRef } from 'react';
-import { getCanvasMousePosition } from '../utils';
+import type { MutableRefObject } from 'react';
+import { useEffect, useRef } from 'react';
+import { getCanvasMousePosition } from '../../../utils/utils';
 
 export function initPointDrawEvent(
   canvas: HTMLCanvasElement,
