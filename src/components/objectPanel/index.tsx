@@ -25,6 +25,7 @@ export const ObjectPanel = () => {
     close: closeOverlay,
   } = useOverlay<'image_selection', CloseOpts>('image_selection');
   const [state, setState] = useState<UIState>(initialState);
+  const [overlayLoading, setOverlayLoading] = useState<boolean>(false);
 
   const openOverlay = async () => {
     open({
@@ -52,10 +53,17 @@ export const ObjectPanel = () => {
   useEffect(() => {
     appProcess.registerOnMessage((_, message) => {
       if (message && message.type === 'meshReady') {
+        setOverlayLoading(false);
         const { type, ...images } = message;
         setOverlayImages(images);
 
         closeOverlay({ reason: 'aborted' });
+        return;
+      }
+
+      if (message && message.type === 'meshLoading') {
+        setOverlayLoading(true);
+        return;
       }
     });
   }, [closeOverlay]);
@@ -74,7 +82,6 @@ export const ObjectPanel = () => {
     });
     // 等 canva 后台上传完成，后面才能消费
     await targetImage.whenUploaded();
-
     const { url: targetImageUrl } = await getTemporaryUrl({
       type: 'IMAGE',
       ref: targetImage.ref,
@@ -86,7 +93,7 @@ export const ObjectPanel = () => {
       composite: targetImageUrl,
     });
 
-    const result = await (
+    const eventResult = await (
       await fetch('https://fusion-brush-cf.xiongty.workers.dev/api/task', {
         method: 'POST',
         headers: {
@@ -107,13 +114,15 @@ export const ObjectPanel = () => {
       })
     ).json();
 
-    console.log(`🚧 || handleSubmit result`, result);
+    console.log(`🚧 || handleSubmit result`, eventResult);
+
+    const result = await sseQueryingResult(eventResult.event_id);
+    console.log(`🚧 || gpuResult`, result);
 
     setSubmitLoading(false);
   };
 
   const resetOverlayImage = () => {
-    console.log(`🔨 ~~~~~~~~~~~~~~~~~~~~~~ reset overlay image`);
     setOverlayImages(undefined);
   };
 
@@ -149,7 +158,12 @@ export const ObjectPanel = () => {
               />
             )}
           />
-          <Button variant='primary' onClick={handleSave} stretch>
+          <Button
+            variant='primary'
+            onClick={handleSave}
+            stretch
+            loading={overlayLoading}
+          >
             Save Overlay
           </Button>
           <Button
@@ -163,7 +177,7 @@ export const ObjectPanel = () => {
       ) : (
         <>
           <Rows spacing='2u'>
-            <UploadLocalImage onUpload={onTargetUpload} />
+            <UploadLocalImage url={targetMesh} onUpload={onTargetUpload} />
 
             <OpenOverlay
               canOpen={canOpen}
@@ -195,3 +209,50 @@ export const ObjectPanel = () => {
     </div>
   );
 };
+
+function sseQueryingResult(eventId) {
+  return new Promise(resolve => {
+    // 服务器发送事件流的URL
+    const eventSourceURL = `https://fusion-brush-cf.xiongty.workers.dev/api/task/${eventId}`;
+    // 创建一个EventSource实例
+    const eventSource = new EventSource(eventSourceURL);
+
+    function processMessage(event, ...params) {
+      try {
+        console.log(`🚧 || processMessage data`, event, params);
+        // 将事件数据解析为JSON
+        const data = JSON.parse(event.data);
+        // 检查事件类型
+        if (data.event === 'complete') {
+          // 打印所有图片URL
+          console.log(data.data);
+          resolve(data.data);
+
+          // 可选：处理完数据后关闭EventSource连接
+          // eventSource.close();
+        }
+      } catch (error) {
+        console.error(`❌ || process message error`, error);
+      }
+    }
+    eventSource.onmessage = event => {
+      console.log(`🚧 || processMessage event`, event);
+      processMessage(event);
+    };
+    eventSource.addEventListener('message', e => {
+      processMessage(e);
+    });
+    eventSource.addEventListener('heartbeat', e => {
+      console.log(`🚧 || hearbeat`, e);
+    });
+
+    eventSource.onopen = e => {
+      console.log(`🚧 || onopen`, e);
+    };
+    // 监听错误
+    eventSource.onerror = function (error) {
+      console.error(`❌ || EventSource error`, error);
+      // eventSource.close();
+    };
+  });
+}

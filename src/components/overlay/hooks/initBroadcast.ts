@@ -1,14 +1,19 @@
 import { getTemporaryUrl, upload } from '@canva/asset';
 import { appProcess } from '@canva/platform';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { UIState } from 'src/components/overlay';
 
 // 注册事件
 export function useInitMessage(canvasRef, uiStateRef, originImage) {
   const originImageRef = useRef(originImage);
+  const [loading, setLoading] = useState(false);
 
   const handleSave = async canvas => {
     if (!canvas) return;
+    setLoading(true);
+    appProcess.broadcastMessage({
+      type: 'meshLoading',
+    });
 
     const dataUrl = canvas.toDataURL();
     const maskImage = await upload({
@@ -26,6 +31,7 @@ export function useInitMessage(canvasRef, uiStateRef, originImage) {
       ref: maskImage.ref,
     });
 
+    setLoading(false);
     appProcess.broadcastMessage({
       type: 'meshReady',
       originImage: originImageRef.current,
@@ -60,4 +66,8 @@ export function useInitMessage(canvasRef, uiStateRef, originImage) {
     // 需要更新 originImage
     [originImage]
   );
+
+  return {
+    loading,
+  };
 }
