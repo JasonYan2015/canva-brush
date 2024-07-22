@@ -1,4 +1,12 @@
-import { Rows, FormField, Button, Slider, Box, Title } from '@canva/app-ui-kit';
+import {
+  Rows,
+  FormField,
+  Button,
+  Slider,
+  Box,
+  Title,
+  ImageCard,
+} from '@canva/app-ui-kit';
 import { useEffect, useState } from 'react';
 import { appProcess } from '@canva/platform';
 import { useOverlay } from 'utils/use_overlay_hook';
@@ -68,6 +76,7 @@ export const ObjectPanel = () => {
     });
   }, [closeOverlay]);
 
+  const [resultImgs, setResultImgs] = useState<string[]>([]);
   const [submitLoading, setSubmitLoading] = useState(false);
   const handleSubmit = async () => {
     setSubmitLoading(true);
@@ -118,6 +127,8 @@ export const ObjectPanel = () => {
 
     const result = await sseQueryingResult(eventResult.event_id);
     console.log(`🚧 || gpuResult`, result);
+    // 手动删掉里面的 /cal ，不然图片 404
+    setResultImgs(result.map(item => item.image.url.replace('/cal', '')));
 
     setSubmitLoading(false);
   };
@@ -206,11 +217,26 @@ export const ObjectPanel = () => {
           </Button>
         </Box>
       )}
+
+      {resultImgs.length > 0 &&
+        resultImgs.map(img => {
+          console.log(`🚧 || img`, img);
+          return (
+            <Rows key={img} spacing='1u'>
+              <ImageCard
+                ariaLabel='target image'
+                thumbnailUrl={img}
+                onClick={() => {}}
+              />
+            </Rows>
+          );
+        })}
     </div>
   );
 };
 
-function sseQueryingResult(eventId) {
+type TSseResult = { image: { path: string; url: string } }[];
+function sseQueryingResult(eventId): Promise<TSseResult> {
   return new Promise(resolve => {
     // 服务器发送事件流的URL
     const eventSourceURL = `https://fusion-brush-cf.xiongty.workers.dev/api/task/${eventId}`;
@@ -221,9 +247,9 @@ function sseQueryingResult(eventId) {
       try {
         // 将事件数据解析为JSON
         const data = JSON.parse(event.data);
+        console.log(`🚧 || SSE complete`, data);
         // 打印所有图片URL
-        console.log(data);
-        resolve(data);
+        resolve(data[0] as TSseResult);
 
         // 处理完数据后关闭EventSource连接
         eventSource.close();
