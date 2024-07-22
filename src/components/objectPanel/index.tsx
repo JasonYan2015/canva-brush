@@ -217,33 +217,27 @@ function sseQueryingResult(eventId) {
     // 创建一个EventSource实例
     const eventSource = new EventSource(eventSourceURL);
 
-    function processMessage(event, ...params) {
+    function processMessage(event) {
       try {
-        console.log(`🚧 || processMessage data`, event, params);
         // 将事件数据解析为JSON
         const data = JSON.parse(event.data);
-        // 检查事件类型
-        if (data.event === 'complete') {
-          // 打印所有图片URL
-          console.log(data.data);
-          resolve(data.data);
+        // 打印所有图片URL
+        console.log(data);
+        resolve(data);
 
-          // 可选：处理完数据后关闭EventSource连接
-          // eventSource.close();
-        }
+        // 处理完数据后关闭EventSource连接
+        eventSource.close();
       } catch (error) {
         console.error(`❌ || process message error`, error);
       }
     }
-    eventSource.onmessage = event => {
-      console.log(`🚧 || processMessage event`, event);
-      processMessage(event);
-    };
-    eventSource.addEventListener('message', e => {
+    /**
+     * 🙅 不能监听 message 事件，不会触发
+     * 只能直接监听 自定义事件
+     * 目前看到的有 heartbeat 和 complete
+     */
+    eventSource.addEventListener('complete', e => {
       processMessage(e);
-    });
-    eventSource.addEventListener('heartbeat', e => {
-      console.log(`🚧 || hearbeat`, e);
     });
 
     eventSource.onopen = e => {
@@ -252,7 +246,7 @@ function sseQueryingResult(eventId) {
     // 监听错误
     eventSource.onerror = function (error) {
       console.error(`❌ || EventSource error`, error);
-      // eventSource.close();
+      eventSource.close();
     };
   });
 }
